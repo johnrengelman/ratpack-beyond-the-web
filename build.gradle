@@ -1,0 +1,132 @@
+import groovy.json.JsonOutput
+
+buildscript {
+    ext {
+        assetPipelineVersion = '2.9.1'
+    }
+    repositories {
+        mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        classpath 'io.ratpack:ratpack-gradle:1.4.0-rc-2'
+        classpath 'com.craigburke.gradle:client-dependencies:1.1.3'
+        classpath 'com.craigburke:asciidoctor-asset-pipeline:1.1.0-SNAPSHOT'
+        classpath "com.bertramlabs.plugins:asset-pipeline-gradle:${assetPipelineVersion}"
+        classpath 'org.asciidoctor:asciidoctorj-diagram:1.3.1'
+        classpath 'org.ajoberstar:gradle-git:1.5.0'
+        classpath 'com.github.jruby-gradle:jruby-gradle-plugin:1.2.1'
+    }
+}
+
+plugins {
+    id 'com.gradle.build-scan' version '1.0'
+}
+
+apply plugin: 'io.ratpack.ratpack-groovy'
+apply plugin: 'com.craigburke.client-dependencies'
+apply plugin: 'com.bertramlabs.asset-pipeline'
+apply plugin: 'org.ajoberstar.github-pages'
+apply plugin: 'com.github.jruby-gradle.base'
+
+buildScan {
+    licenseAgreementUrl = 'https://gradle.com/terms-of-service'
+    licenseAgree = 'yes'
+}
+
+ext {
+    githubRepoUri = 'https://github.com/johnrengelman/ratpack-beyond-the-web.git'
+    assetPath = file('src/assets').absolutePath
+    assetConfigFile = file('build/resources/main/assets.json')
+    asciidoctorConfig = [
+        requires: [ 'asciidoctor-bespoke', 'asciidoctor-diagram' ],
+        safe: 0,
+        docinfo1: true,
+        backend: 'bespoke',
+        gemPath: jruby.gemInstallDir.absolutePath,
+        headerFooter: true,
+        template_dirs: [
+            "${assetPath}/templates" as String
+        ],
+        attributes: [ icons: 'font',
+                      imagesoutdir: "${assetPath}/images" as String
+        ]
+    ]
+}
+
+repositories {
+    mavenLocal()
+    jcenter()
+}
+
+dependencies {
+    compile "com.bertramlabs.plugins:ratpack-asset-pipeline:${assetPipelineVersion}"
+    runtime 'com.craigburke:asciidoctor-asset-pipeline:1.1.0-SNAPSHOT'
+    gems('rubygems:asciidoctor-bespoke:1.0.0.alpha.1') { transitive false }
+    gems('rubygems:asciidoctor-diagram:1.4.0') { transitive false }
+
+    compile "com.ecwid.consul:consul-api:1.1.11"
+    compile "com.rabbitmq:amqp-client:3.6.3"
+}
+
+clientDependencies {
+    installDir = "${assetPath}/vendor"
+
+    npm {
+        'bespoke'('1.*')
+        'bespoke-classes'('1.*', into: 'bespoke/plugins')
+        'bespoke-scale'('1.*', into: 'bespoke/plugins')
+        'bespoke-keys'('1.*', into: 'bespoke/plugins')
+        'bespoke-progress'('1.*', into: 'bespoke/plugins')
+        'bespoke-hash'('1.*', into: 'bespoke/plugins')
+        'bespoke-backdrop'('1.*', into: 'bespoke/plugins')
+        'bespoke-bullets'('1.*', into: 'bespoke/plugins')
+        'bespoke-state'('1.*', into: 'bespoke/plugins')
+        'bespoke-fullscreen'('1.*', into: 'bespoke/plugins')
+        'bespoke-touch'('1.*', into: 'bespoke/plugins')
+        'bespoke-overview'('1.*', into: 'bespoke/plugins', transitive: false)
+        'normalize.css'('4.1.1')
+        'font-awesome'('4.6.3') {
+            include 'css/font-awesome.min.css'
+            include 'fonts/**'
+        }
+        'highlightjs'('8.7.0') {
+            include 'highlight.pack.min.js'
+            include 'styles/darkula.css'
+        }
+    }
+}
+
+assets {
+    assetsPath = assetPath
+    configOptions = [asciidoctor: asciidoctorConfig]
+    excludes = ['**/*.slim', '**/*.rb', '**/slides/*', '**/code/**']
+}
+
+githubPages {
+    repoUri = project.githubRepoUri
+
+    credentials {
+        username = project.hasProperty('githubToken') ? project.githubToken : ''
+        password = ''
+    }
+
+    pages {
+        from assetCompile.destinationDir
+    }
+}
+
+task saveAssetConfig() {
+    outputs.file assetConfigFile
+    doLast {
+        assetConfigFile.createNewFile()
+        Map ratpackConfig = [ assets:
+           [url: '/', sourcePath: assetPath, assets: [asciidoctor: asciidoctorConfig]]
+        ]
+        assetConfigFile.text = JsonOutput.toJson(ratpackConfig)
+    }
+}
+
+assetCompile.dependsOn jrubyPrepare
+run.dependsOn jrubyPrepare, saveAssetConfig
+publishGhPages.dependsOn assetCompile

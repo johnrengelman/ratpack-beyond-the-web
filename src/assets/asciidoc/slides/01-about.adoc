@@ -1,0 +1,22 @@
+== About Me
+
+[%build]
+* icon:user[] Chief Technologist - Object Partners
+* icon:globe[] http://www.objectpartners.com
+* icon:globe[] http://imperceptiblethoughts.com
+* icon:twitter[] @johnrengelman
+* icon:github[] johnrengelman
+
+== About This Presentation
+
+[%build]
+* icon:github[] https://github.com/johnrengelman/ratpack-beyond-the-web
+* icon:globe[] http://impercetiblethoughts.com/ratpack-beyond-the-web
+
+== Topics
+
+[%build]
+* Config Management in Ratpack
+* Custom Configuration Providers
+* Scheduling Tasks in Ratpack
+* Message Driven Ratpack

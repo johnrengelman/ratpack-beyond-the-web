@@ -1,0 +1,6 @@
+demo:
+  name: demo-app
+  people:
+    - John
+    - Luke
+    - Dan

@@ -1,0 +1,6 @@
+:docinfo: shared
+= Ratpack: Beyond The Web
+
+include::slides/01-about.adoc[]
+
+include::slides
